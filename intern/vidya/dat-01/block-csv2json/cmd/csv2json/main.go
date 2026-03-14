@@ -12,14 +12,16 @@ import (
 
 type Block struct {
 	BlockNumber int    `json:"block_number"`
-	Timestamp   string `json:"timestamp"`
+	Timestamp   int64  `json:"timestamp"`
 	TxCount     int    `json:"tx_count"`
 	TxHexSample string `json:"tx_hex_sample"`
 }
 
 func main() {
 	filePath := flag.String("file", "", "path to CSV file")
-	flag.Parse()
+    summary := flag.Bool("summary", false, "show block summary")
+    flag.Parse()
+
 
 	if *filePath == "" {
 		fmt.Println("Please provide --file flag")
@@ -47,13 +49,19 @@ func main() {
 			continue // skip header
 		}
 
-		blockNumber, err := validate.Int(row[0], "block_number")
+		blockNumber, err := validate.BlockNumber(row[0])
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
 
-		txCount, err := validate.Int(row[2], "tx_count")
+		timestamp, err := validate.Timestamp(row[1])
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		txCount, err := validate.TxCount(row[2])
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -61,7 +69,7 @@ func main() {
 
 		block := Block{
 			BlockNumber: blockNumber,
-			Timestamp:   row[1],
+			Timestamp:   timestamp,
 			TxCount:     txCount,
 			TxHexSample: row[3],
 		}
@@ -75,6 +83,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(string(output))
+	if *summary {
+	totalTx := 0
+	for _, b := range blocks {
+		totalTx += b.TxCount
+	}
+
+	fmt.Println("Block count:", len(blocks))
+	fmt.Println("Total transactions:", totalTx)
+	return
 }
 
+fmt.Println(string(output))
+
+}
